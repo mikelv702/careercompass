@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "careercompass"
+version = "0.1.0"
+description = "Task Tracking, and more"
+authors = ["Michael H <michael@rubberduck-labs.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111.1"
+sqlalchemy = "^2.0.31"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
