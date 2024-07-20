@@ -1,34 +1,18 @@
 from pydantic import BaseModel
 
 
-
-# Quick Task Schemas
-
-class QuickTaskBase(BaseModel):
+class ItemBase(BaseModel):
+    title: str
     description: str | None = None
-    
-class QuickTaskCreate(QuickTaskBase):
+
+
+class ItemCreate(ItemBase):
     pass
 
-class QuickTask(QuickTaskBase):
+
+class Item(ItemBase):
     id: int
     owner_id: int
 
-    class Config:
-        orm_mode = True
-
-# User Schemas
-
-class UserBase(BaseModel):
-    email: str
-    
-class UserCreate(UserBase):
-    password: str
-    
-class User(UserBase):
-    id: int
-    is_active: bool
-    quick_tasks: list[QuickTask] = []
-    
     class Config:
         orm_mode = True

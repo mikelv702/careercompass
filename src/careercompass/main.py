@@ -1,15 +1,28 @@
-from fastapi import Depends, FastAPI, HTTPException
+from datetime import timedelta
+from typing import Annotated
+
+
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
+from .auth.schemas import User, Token, UserCreate
+from .auth.basic import (authenticate_user,
+                         fake_users_db,
+                         ACCESS_TOKEN_EXPIRE_MINUTES,
+                         create_access_token,
+                         get_current_active_user)
+from .auth.crud import get_user_by_email, create_user
+
 from sqlalchemy.orm import Session
-
-from . import crud, models, schemas
 from .database import SessionLocal, engine
+from .tasks.router import router as taskrouter
 
-models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
+app.include_router(taskrouter)
 # Dependency
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -18,36 +31,43 @@ def get_db():
         db.close()
 
 
-@app.post("/users/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+@app.post("/token")
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Session = Depends(get_db)
+) -> Token:
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@app.post("/users/")
+def register_new_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+
+    return create_user(db=db, user=user)
 
 
-@app.get("/users/", response_model=list[schemas.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
-
-
-@app.get("/users/{user_id}", response_model=schemas.User)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-
-@app.post("/users/{user_id}/tasks/", response_model=schemas.QuickTask)
-def create_item_for_user(
-    user_id: int, task: schemas.QuickTaskCreate, db: Session = Depends(get_db)
+@app.get("/users/me/", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
-    return crud.create_user_quicktask(db=db, quicktask=task, user_id=user_id)
+    return current_user
 
 
-@app.get("/tasks/", response_model=list[schemas.QuickTask])
-def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    tasks = crud.get_quick_tasks(db, skip=skip, limit=limit)
-    return tasks
+@app.get("/users/me/items/")
+async def read_own_items(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    return [{"item_id": "Foo", "owner": current_user.username}]
