@@ -39,3 +39,16 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     print(db_user)
     return db_user.username
+
+
+def activate_user(db: Session, user_email: str, activation_code: str):
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    test_code = "signup123"
+    if activation_code == test_code:
+        user.is_active = True
+        db.commit()
+        db.refresh(user)
+        if user.is_active:
+            print(f"{user.email} is now active")
+        else:
+            print(f"Unable to activate {user.email}")

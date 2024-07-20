@@ -27,5 +27,5 @@ def read_tasks(current_user: Annotated[User, Depends(get_current_active_user)],
 @router.post('/')
 def create_task(description:str, current_user: Annotated[User, Depends(get_current_active_user)],
                db: Session = Depends(get_db)):
-    created_task = create_quicktask(db, description)
+    created_task = create_quicktask(db, description, current_user.id)
     return created_task

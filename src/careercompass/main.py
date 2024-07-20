@@ -11,7 +11,7 @@ from .auth.basic import (authenticate_user,
                          ACCESS_TOKEN_EXPIRE_MINUTES,
                          create_access_token,
                          get_current_active_user)
-from .auth.crud import get_user_by_email, create_user
+from .auth.crud import get_user_by_email, create_user, activate_user
 
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
@@ -50,6 +50,8 @@ async def login_for_access_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
+
+
 @app.post("/users/")
 def register_new_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = get_user_by_email(db, email=user.email)
@@ -58,6 +60,10 @@ def register_new_user(user: UserCreate, db: Session = Depends(get_db)):
 
     return create_user(db=db, user=user)
 
+@app.post("/users/activate/")
+def activate_new_user(email: str, activation_code: str, db: Session = Depends(get_db)):
+    activate_user(db=db, activation_code=activation_code, user_email=email)
+    return {"message": "Done"}
 
 @app.get("/users/me/", response_model=User)
 async def read_users_me(
