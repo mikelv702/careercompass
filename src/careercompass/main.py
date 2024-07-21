@@ -3,6 +3,7 @@ from typing import Annotated
 
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 
 from .auth.schemas import User, Token, UserCreate
@@ -20,9 +21,22 @@ from .tasks.router import router as taskrouter
 
 app = FastAPI()
 app.include_router(taskrouter)
+
+origins = [
+    "http://localhost:3000",
+    "localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
 # Dependency
-
-
 def get_db():
     db = SessionLocal()
     try:

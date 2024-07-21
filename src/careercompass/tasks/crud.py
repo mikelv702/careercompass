@@ -1,9 +1,10 @@
 from ..models import QuickTasks
 from sqlalchemy.orm import Session
+from .schemas import CreateQuickTask
 
 
-def create_quicktask(db: Session, description:str, user_id: int):
-    db_quicktask = QuickTasks(description=description, user_id=user_id)
+def create_quicktask(db: Session, description: CreateQuickTask, user_id: int):
+    db_quicktask = QuickTasks(description=description.description, user_id=user_id)
     db.add(db_quicktask)
     db.commit()
     db.refresh(db_quicktask)
