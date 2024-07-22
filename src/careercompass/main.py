@@ -17,7 +17,7 @@ from .auth.crud import get_user_by_email, create_user, activate_user
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine
 from .tasks.router import router as taskrouter
-
+from .depends import get_db
 
 app = FastAPI()
 app.include_router(taskrouter)
@@ -34,15 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @app.post("/token")
